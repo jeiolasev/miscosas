@@ -1,2 +1,2 @@
 # miscosas
-cosas que voy haciendo
+cosas mias
