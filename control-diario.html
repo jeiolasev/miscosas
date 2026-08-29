@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Disponible Hoy</title>
+<style>
+  :root{
+    --bg: #12151c;
+    --surface: #1b2029;
+    --surface-2: #20262f;
+    --line: #2a3040;
+    --text: #f5f6f8;
+    --muted: #8a93a6;
+    --green: #3ecf8e;
+    --green-dim: #2a8f66;
+    --coral: #ff6b5b;
+    --mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+    --sans: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:transparent;color:var(--text);font-family:var(--sans);}
+  #root{
+    max-width:420px;
+    margin:0 auto;
+    min-height:100vh;
+    background:var(--bg);
+    position:relative;
+    padding-bottom:40px;
+  }
+  .receipt{
+    background:var(--surface);
+    margin:16px;
+    border-radius:2px;
+    position:relative;
+    box-shadow:0 20px 40px -20px rgba(0,0,0,0.6);
+  }
+  .receipt::before, .receipt::after{
+    content:"";
+    position:absolute;
+    left:0; right:0;
+    height:10px;
+    background:
+      radial-gradient(circle at 8px 5px, transparent 5px, var(--bg) 5.5px) repeat-x;
+    background-size:16px 10px;
+  }
+  .receipt::before{ top:-9px; }
+  .receipt::after{ bottom:-9px; transform:scaleY(-1); }
+
+  .eyebrow{
+    padding:22px 24px 0 24px;
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--muted);
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+  .eyebrow button{
+    background:none;border:none;color:var(--muted);
+    font-family:var(--mono); font-size:11px; letter-spacing:0.1em;
+    cursor:pointer; text-transform:uppercase; padding:4px;
+  }
+  .eyebrow button:hover{ color:var(--text); }
+
+  .gauge-wrap{
+    display:flex; flex-direction:column; align-items:center;
+    padding:28px 24px 4px 24px;
+  }
+  .gauge-num{
+    font-family:var(--mono);
+    font-weight:700;
+    font-size:56px;
+    line-height:1;
+    letter-spacing:-0.02em;
+  }
+  .gauge-label{
+    font-size:13px;
+    color:var(--muted);
+    margin-top:2px;
+    text-align:center;
+  }
+  .gauge-sub{
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--muted);
+    margin-top:10px;
+  }
+
+  .dashed{
+    border-top:1.5px dashed var(--line);
+    margin:20px 24px 0 24px;
+  }
+
+  .section-title{
+    padding:18px 24px 8px 24px;
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--muted);
+  }
+
+  .expense-list{ padding:0 24px; }
+  .expense-row{
+    display:flex;
+    align-items:baseline;
+    gap:8px;
+    padding:9px 0;
+    font-size:14px;
+  }
+  .expense-desc{ white-space:nowrap; overflow:hidden; }
+  .expense-leader{
+    flex:1;
+    border-bottom:1px dotted var(--line);
+    height:0;
+    transform:translateY(-4px);
+  }
+  .expense-amt{
+    font-family:var(--mono);
+    white-space:nowrap;
+    color:var(--text);
+  }
+  .expense-amt.ingreso{ color:var(--green); }
+  .expense-del{
+    background:none;border:none;color:var(--muted);
+    font-size:14px; cursor:pointer; padding:0 0 0 6px;
+    line-height:1;
+  }
+  .expense-del:hover{ color:var(--coral); }
+  .empty-line{
+    padding:14px 0;
+    color:var(--muted);
+    font-size:13px;
+    font-style:normal;
+  }
+
+  .type-toggle{
+    display:flex;
+    gap:6px;
+    padding:14px 24px 0 24px;
+  }
+  .type-btn{
+    flex:1;
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    color:var(--muted);
+    font-family:var(--sans);
+    font-weight:700;
+    font-size:12px;
+    letter-spacing:0.03em;
+    padding:8px;
+    border-radius:6px;
+    cursor:pointer;
+  }
+  .type-btn.active-gasto{
+    background:rgba(255,107,91,0.12);
+    border-color:var(--coral);
+    color:var(--coral);
+  }
+  .type-btn.active-ingreso{
+    background:rgba(62,207,142,0.12);
+    border-color:var(--green);
+    color:var(--green);
+  }
+
+  .add-form{
+    padding:10px 24px 6px 24px;
+    display:flex;
+    gap:8px;
+  }
+  .add-form input{
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    border-radius:6px;
+    color:var(--text);
+    font-family:var(--sans);
+    font-size:14px;
+    padding:10px 12px;
+    outline:none;
+  }
+  .add-form input:focus{ border-color:var(--green-dim); }
+  .add-form input.amt{ width:92px; font-family:var(--mono); }
+  .add-form input.desc{ flex:1; min-width:0; }
+  .add-btn{
+    width:100%;
+    margin:10px 24px 20px 24px;
+    width:calc(100% - 48px);
+    background:var(--green);
+    color:#0b1410;
+    border:none;
+    border-radius:6px;
+    padding:11px;
+    font-family:var(--sans);
+    font-weight:700;
+    font-size:14px;
+    cursor:pointer;
+    letter-spacing:0.01em;
+  }
+  .add-btn:active{ transform:translateY(1px); }
+  .add-btn:disabled{ background:var(--surface-2); color:var(--muted); cursor:default; }
+
+  .month-strip{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:16px 24px 22px 24px;
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--muted);
+  }
+  .month-strip .val{ color:var(--text); }
+  .bar-track{
+    height:4px;
+    background:var(--surface-2);
+    border-radius:2px;
+    margin:0 24px 4px 24px;
+    overflow:hidden;
+  }
+  .bar-fill{
+    height:100%;
+    background:var(--green);
+    transition:width 0.3s ease;
+  }
+
+  .modal-overlay{
+    position:fixed; inset:0;
+    background:rgba(0,0,0,0.55);
+    display:flex; align-items:center; justify-content:center;
+    z-index:10;
+    padding:20px;
+  }
+  .modal{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:22px;
+    width:100%;
+    max-width:340px;
+  }
+  .modal h3{
+    margin:0 0 14px 0;
+    font-size:15px;
+    font-family:var(--sans);
+    font-weight:700;
+  }
+  .modal label{
+    display:block;
+    font-size:11px;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    margin:12px 0 6px 0;
+  }
+  .modal input{
+    width:100%;
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    border-radius:6px;
+    color:var(--text);
+    font-family:var(--mono);
+    font-size:15px;
+    padding:10px 12px;
+    outline:none;
+  }
+  .modal-actions{
+    display:flex; gap:10px; margin-top:18px;
+  }
+  .modal-actions button{
+    flex:1;
+    padding:10px;
+    border-radius:6px;
+    border:none;
+    font-family:var(--sans);
+    font-weight:700;
+    font-size:13px;
+    cursor:pointer;
+  }
+  .btn-cancel{ background:var(--surface-2); color:var(--muted); }
+  .btn-save{ background:var(--green); color:#0b1410; }
+
+  .history-list{ padding:0 24px; }
+  .history-row{
+    display:flex;
+    align-items:baseline;
+    gap:8px;
+    padding:9px 0;
+    font-size:14px;
+  }
+  .history-month{ white-space:nowrap; text-transform:capitalize; color:var(--muted); }
+  .history-leader{
+    flex:1;
+    border-bottom:1px dotted var(--line);
+    height:0;
+    transform:translateY(-4px);
+  }
+  .history-amt{
+    font-family:var(--mono);
+    white-space:nowrap;
+    font-weight:700;
+  }
+  .history-amt.pos{ color:var(--green); }
+  .history-amt.neg{ color:var(--coral); }
+
+  .loading{
+    padding:60px 24px;
+    text-align:center;
+    color:var(--muted);
+    font-family:var(--mono);
+    font-size:12px;
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+const STORAGE_KEY = 'presupuesto-config';
+const EXPENSES_PREFIX = 'gasto:';
+const INCOME_PREFIX = 'ingreso:';
+const HISTORY_PREFIX = 'historial:';
+
+let state = {
+  loaded: false,
+  budget: null, // { monthlyAmount, currency }
+  movements: [], // { id, type: 'gasto'|'ingreso', amount, desc, dateISO, createdAt }
+  history: [], // { month: 'YYYY-MM', budget, spent, income, resultado }
+  showSetup: false,
+  formType: 'gasto',
+  formAmount: '',
+  formDesc: '',
+  setupAmount: ''
+};
+
+function fmtMoney(n){
+  const sign = n < 0 ? '-' : '';
+  return sign + '€' + Math.abs(n).toFixed(2).replace('.', ',');
+}
+
+function todayISO(){
+  const d = new Date();
+  return d.toISOString().slice(0,10);
+}
+
+function daysInMonth(d){
+  return new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
+}
+
+function computeDaily(){
+  const now = new Date();
+  const dim = daysInMonth(now);
+  const dayOfMonth = now.getDate();
+  const daysRemaining = dim - dayOfMonth + 1; // incluye hoy
+
+  const monthKey = now.toISOString().slice(0,7); // YYYY-MM
+  const monthMovements = state.movements.filter(e => e.dateISO.startsWith(monthKey));
+  const spentMonth = monthMovements.filter(e => e.type === 'gasto').reduce((s,e) => s + e.amount, 0);
+  const incomeMonth = monthMovements.filter(e => e.type === 'ingreso').reduce((s,e) => s + e.amount, 0);
+
+  const todayKey = todayISO();
+  const todayMovements = state.movements.filter(e => e.dateISO === todayKey)
+    .sort((a,b) => b.createdAt - a.createdAt);
+  const spentToday = todayMovements.filter(e => e.type === 'gasto').reduce((s,e) => s + e.amount, 0);
+
+  const budget = state.budget ? state.budget.monthlyAmount : 0;
+  // Los ingresos esporádicos amplían la bolsa disponible del mes, y se reparten
+  // entre los días que quedan igual que el presupuesto.
+  const remainingBudget = budget + incomeMonth - spentMonth;
+  const availablePerDay = daysRemaining > 0 ? remainingBudget / daysRemaining : remainingBudget;
+  const availableToday = availablePerDay - spentToday;
+
+  return {
+    dim, dayOfMonth, daysRemaining, spentMonth, incomeMonth, budget, remainingBudget,
+    availablePerDay, availableToday, todayMovements, spentToday
+  };
+}
+
+async function loadData(){
+  try{
+    const cfg = await window.storage.get(STORAGE_KEY, false);
+    state.budget = cfg ? JSON.parse(cfg.value) : null;
+  }catch(e){ state.budget = null; }
+
+  const items = [];
+  for(const prefix of [EXPENSES_PREFIX, INCOME_PREFIX]){
+    try{
+      const list = await window.storage.list(prefix, false);
+      const keys = (list && list.keys) ? list.keys : [];
+      for(const k of keys){
+        try{
+          const r = await window.storage.get(k, false);
+          if(r) items.push(JSON.parse(r.value));
+        }catch(e){}
+      }
+    }catch(e){}
+  }
+  state.movements = items;
+
+  try{
+    const list = await window.storage.list(HISTORY_PREFIX, false);
+    const keys = (list && list.keys) ? list.keys : [];
+    const hist = [];
+    for(const k of keys){
+      try{
+        const r = await window.storage.get(k, false);
+        if(r) hist.push(JSON.parse(r.value));
+      }catch(e){}
+    }
+    state.history = hist;
+  }catch(e){ state.history = []; }
+
+  await archivePreviousMonthIfNeeded();
+
+  state.loaded = true;
+  if(!state.budget) state.showSetup = true;
+  render();
+}
+
+async function archivePreviousMonthIfNeeded(){
+  if(!state.budget) return; // nada que archivar sin presupuesto configurado
+
+  const now = new Date();
+  const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const prevMonthKey = prevDate.toISOString().slice(0,7); // YYYY-MM
+
+  const alreadyArchived = state.history.some(h => h.month === prevMonthKey);
+  if(alreadyArchived) return;
+
+  const prevMovements = state.movements.filter(e => e.dateISO.startsWith(prevMonthKey));
+  const hadActivity = prevMovements.length > 0;
+  if(!hadActivity) return; // no hubo nada ese mes, no archivamos una fila vacía
+
+  const spent = prevMovements.filter(e => e.type === 'gasto').reduce((s,e) => s + e.amount, 0);
+  const income = prevMovements.filter(e => e.type === 'ingreso').reduce((s,e) => s + e.amount, 0);
+  const budget = state.budget.monthlyAmount;
+  const resultado = budget + income - spent;
+
+  const entry = { month: prevMonthKey, budget, spent, income, resultado };
+  try{
+    await window.storage.set(HISTORY_PREFIX + prevMonthKey, JSON.stringify(entry), false);
+    state.history.push(entry);
+  }catch(e){ console.error('Error archivando el mes anterior', e); }
+}
+
+async function saveBudget(amount){
+  const cfg = { monthlyAmount: amount, currency: 'EUR' };
+  try{
+    await window.storage.set(STORAGE_KEY, JSON.stringify(cfg), false);
+    state.budget = cfg;
+  }catch(e){ console.error('Error guardando presupuesto', e); }
+}
+
+async function addMovement(type, amount, desc){
+  const id = 'm' + Date.now() + Math.random().toString(36).slice(2,7);
+  const defaultDesc = type === 'ingreso' ? 'Ingreso' : 'Gasto';
+  const item = { id, type, amount, desc: desc || defaultDesc, dateISO: todayISO(), createdAt: Date.now() };
+  const prefix = type === 'ingreso' ? INCOME_PREFIX : EXPENSES_PREFIX;
+  try{
+    await window.storage.set(prefix + id, JSON.stringify(item), false);
+    state.movements.push(item);
+  }catch(e){ console.error('Error guardando movimiento', e); }
+}
+
+async function deleteMovement(id, type){
+  const prefix = type === 'ingreso' ? INCOME_PREFIX : EXPENSES_PREFIX;
+  try{
+    await window.storage.delete(prefix + id, false);
+    state.movements = state.movements.filter(e => e.id !== id);
+    render();
+  }catch(e){ console.error('Error borrando movimiento', e); }
+}
+
+function el(tag, attrs, ...children){
+  const e = document.createElement(tag);
+  if(attrs) for(const k in attrs){
+    if(k === 'class') e.className = attrs[k];
+    else if(k.startsWith('on')) e.addEventListener(k.slice(2).toLowerCase(), attrs[k]);
+    else e.setAttribute(k, attrs[k]);
+  }
+  children.flat().forEach(c => {
+    if(c === null || c === undefined) return;
+    if(typeof c === 'string') e.appendChild(document.createTextNode(c));
+    else e.appendChild(c);
+  });
+  return e;
+}
+
+function dateLabelEs(){
+  const opts = { weekday: 'long', day: 'numeric', month: 'long' };
+  const s = new Date().toLocaleDateString('es-ES', opts);
+  return s;
+}
+
+function monthLabelEs(monthKey){
+  const [y, m] = monthKey.split('-').map(Number);
+  const d = new Date(y, m - 1, 1);
+  return d.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+}
+
+function render(){
+  const root = document.getElementById('root');
+  root.innerHTML = '';
+
+  if(!state.loaded){
+    root.appendChild(el('div', {class:'loading'}, 'CARGANDO TU LIBRETA…'));
+    return;
+  }
+
+  const receipt = el('div', {class:'receipt'});
+
+  receipt.appendChild(el('div', {class:'eyebrow'},
+    el('span', null, dateLabelEs()),
+    el('button', {onClick: () => { state.showSetup = true; state.setupAmount = state.budget ? String(state.budget.monthlyAmount) : ''; render(); }}, 'presupuesto')
+  ));
+
+  const calc = computeDaily();
+  const isOver = calc.availableToday < 0;
+  const color = isOver ? 'var(--coral)' : 'var(--green)';
+
+  const gaugeWrap = el('div', {class:'gauge-wrap'});
+  const num = el('div', {class:'gauge-num', style:`color:${color}`}, fmtMoney(calc.availableToday));
+  gaugeWrap.appendChild(num);
+  gaugeWrap.appendChild(el('div', {class:'gauge-label'}, isOver ? 'te has pasado del disponible de hoy' : 'disponible para gastar hoy'));
+  const subParts = [`${fmtMoney(calc.availablePerDay)}/día · quedan ${calc.daysRemaining} días`];
+  if(calc.incomeMonth > 0) subParts.push(`incluye +${fmtMoney(calc.incomeMonth)} de ingresos este mes`);
+  gaugeWrap.appendChild(el('div', {class:'gauge-sub'}, subParts.join(' · ')));
+  receipt.appendChild(gaugeWrap);
+
+  receipt.appendChild(el('div', {class:'dashed'}));
+
+  receipt.appendChild(el('div', {class:'section-title'}, 'Movimientos de hoy'));
+  const list = el('div', {class:'expense-list'});
+  if(calc.todayMovements.length === 0){
+    list.appendChild(el('div', {class:'empty-line'}, 'Aún no has registrado ningún movimiento hoy.'));
+  } else {
+    calc.todayMovements.forEach(ex => {
+      const isIncome = ex.type === 'ingreso';
+      const amtText = (isIncome ? '+' : '') + fmtMoney(ex.amount);
+      const row = el('div', {class:'expense-row'},
+        el('span', {class:'expense-desc'}, ex.desc),
+        el('span', {class:'expense-leader'}),
+        el('span', {class:'expense-amt' + (isIncome ? ' ingreso' : '')}, amtText),
+        el('button', {class:'expense-del', onClick: () => deleteMovement(ex.id, ex.type)}, '×')
+      );
+      list.appendChild(row);
+    });
+  }
+  receipt.appendChild(list);
+
+  const toggle = el('div', {class:'type-toggle'},
+    el('button', {
+      class: 'type-btn' + (state.formType === 'gasto' ? ' active-gasto' : ''),
+      onClick: () => { state.formType = 'gasto'; render(); }
+    }, 'Gasto'),
+    el('button', {
+      class: 'type-btn' + (state.formType === 'ingreso' ? ' active-ingreso' : ''),
+      onClick: () => { state.formType = 'ingreso'; render(); }
+    }, 'Ingreso')
+  );
+  receipt.appendChild(toggle);
+
+  const form = el('div', {class:'add-form'});
+  const amtInput = el('input', {class:'amt', type:'number', step:'0.01', min:'0', placeholder:'0,00', inputmode:'decimal'});
+  const descInput = el('input', {class:'desc', type:'text', placeholder: state.formType === 'ingreso' ? '¿De dónde?' : '¿En qué?', maxlength:'40'});
+  amtInput.value = state.formAmount;
+  descInput.value = state.formDesc;
+  amtInput.addEventListener('input', e => { state.formAmount = e.target.value; });
+  descInput.addEventListener('input', e => { state.formDesc = e.target.value; });
+  descInput.addEventListener('keydown', e => { if(e.key === 'Enter') submitMovement(); });
+  form.appendChild(amtInput);
+  form.appendChild(descInput);
+  receipt.appendChild(form);
+
+  const addBtn = el('button', {class:'add-btn', onClick: submitMovement}, state.formType === 'ingreso' ? '+ Añadir ingreso' : '+ Añadir gasto');
+  receipt.appendChild(addBtn);
+
+  receipt.appendChild(el('div', {class:'dashed'}));
+
+  const monthPct = calc.budget > 0 ? Math.min(1, calc.spentMonth / calc.budget) : 0;
+  receipt.appendChild(el('div', {class:'bar-track'}, el('div', {class:'bar-fill', style:`width:${monthPct*100}%`})));
+  receipt.appendChild(el('div', {class:'month-strip'},
+    el('span', null, 'este mes: ', el('span', {class:'val'}, `${fmtMoney(calc.spentMonth)} / ${fmtMoney(calc.budget)}`)),
+    el('span', null, `día ${calc.dayOfMonth} de ${calc.dim}`)
+  ));
+
+  if(state.history.length > 0){
+    receipt.appendChild(el('div', {class:'dashed'}));
+    receipt.appendChild(el('div', {class:'section-title'}, 'Evolución mensual'));
+    const histList = el('div', {class:'history-list'});
+    const sorted = [...state.history].sort((a,b) => b.month.localeCompare(a.month));
+    sorted.forEach(h => {
+      const pos = h.resultado >= 0;
+      const row = el('div', {class:'history-row'},
+        el('span', {class:'history-month'}, monthLabelEs(h.month)),
+        el('span', {class:'history-leader'}),
+        el('span', {class:'history-amt ' + (pos ? 'pos' : 'neg')}, (pos ? '+' : '') + fmtMoney(h.resultado))
+      );
+      histList.appendChild(row);
+    });
+    receipt.appendChild(histList);
+  }
+
+  root.appendChild(receipt);
+
+  if(state.showSetup){
+    root.appendChild(renderSetupModal());
+  }
+}
+
+async function submitMovement(){
+  const amount = parseFloat((state.formAmount || '').replace(',', '.'));
+  if(!amount || amount <= 0) return;
+  await addMovement(state.formType, amount, state.formDesc.trim());
+  state.formAmount = '';
+  state.formDesc = '';
+  render();
+}
+
+function renderSetupModal(){
+  const overlay = el('div', {class:'modal-overlay', onClick: (e) => { if(e.target === overlay && state.budget){ state.showSetup = false; render(); } }});
+  const modal = el('div', {class:'modal'});
+  modal.appendChild(el('h3', null, state.budget ? 'Editar presupuesto mensual' : 'Configura tu presupuesto'));
+  modal.appendChild(el('label', null, 'Presupuesto del mes (€)'));
+  const input = el('input', {type:'number', step:'0.01', min:'0', placeholder:'600'});
+  input.value = state.setupAmount;
+  input.addEventListener('input', e => { state.setupAmount = e.target.value; });
+  modal.appendChild(input);
+
+  const actions = el('div', {class:'modal-actions'});
+  if(state.budget){
+    actions.appendChild(el('button', {class:'btn-cancel', onClick: () => { state.showSetup = false; render(); }}, 'Cancelar'));
+  }
+  actions.appendChild(el('button', {class:'btn-save', onClick: async () => {
+    const amount = parseFloat((state.setupAmount || '').replace(',', '.'));
+    if(!amount || amount <= 0) return;
+    await saveBudget(amount);
+    state.showSetup = false;
+    render();
+  }}, 'Guardar'));
+  modal.appendChild(actions);
+
+  overlay.appendChild(modal);
+  return overlay;
+}
+
+loadData();
+</script>
+</body>
+</html>
