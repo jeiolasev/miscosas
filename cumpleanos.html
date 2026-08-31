@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cumpleaños</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1B1B2E;
+    --surface:#242440;
+    --line:#38386052;
+    --gold:#F2B84B;
+    --coral:#FF8B7E;
+    --paper:#F5F1EC;
+    --muted:#9B96B8;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:transparent;
+    color:var(--paper);
+    font-family:'Work Sans', sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{
+    max-width:520px;
+    margin:0 auto;
+    padding:28px 20px 60px;
+  }
+  h1{
+    font-family:'Fraunces', serif;
+    font-weight:500;
+    font-size:clamp(28px, 6vw, 36px);
+    margin:0 0 4px;
+    letter-spacing:-0.01em;
+  }
+  .fecha-hoy{
+    color:var(--muted);
+    font-size:14px;
+    margin:0 0 28px;
+    text-transform:capitalize;
+  }
+
+  /* Hero: today's status */
+  .hero{
+    border-radius:2px;
+    padding:24px;
+    margin-bottom:32px;
+    position:relative;
+    overflow:hidden;
+  }
+  .hero.hay{
+    background:linear-gradient(135deg, #3a2e12, #241d2f 70%);
+    border:1px solid #F2B84B55;
+  }
+  .hero.no-hay{
+    background:var(--surface);
+    border:1px solid var(--line);
+  }
+  .hero-label{
+    font-size:13px;
+    color:var(--muted);
+    margin:0 0 6px;
+  }
+  .hero-nombre{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size:clamp(24px, 6vw, 30px);
+    color:var(--gold);
+    margin:0;
+    line-height:1.15;
+  }
+  .hero-nombre.varios{ font-size:20px; }
+  .hero-sub{
+    color:var(--paper);
+    opacity:0.75;
+    font-size:14px;
+    margin-top:8px;
+  }
+  .hero-dias{
+    font-family:'Fraunces', serif;
+    font-size:44px;
+    color:var(--coral);
+    line-height:1;
+  }
+
+  /* Add form */
+  .agregar{
+    background:var(--surface);
+    border:1px solid var(--line);
+    padding:16px;
+    margin-bottom:32px;
+  }
+  .agregar-titulo{
+    font-size:13px;
+    color:var(--muted);
+    margin:0 0 12px;
+  }
+  .agregar-fila{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  .agregar input, .agregar select{
+    background:var(--ink);
+    border:1px solid var(--line);
+    color:var(--paper);
+    font-family:'Work Sans', sans-serif;
+    font-size:14px;
+    padding:9px 10px;
+  }
+  .agregar input:focus, .agregar select:focus, button:focus-visible{
+    outline:2px solid var(--gold);
+    outline-offset:1px;
+  }
+  #nombre{ flex:1; min-width:120px; }
+  #dia{ width:60px; }
+  #mes{ width:120px; }
+  .agregar button{
+    background:var(--gold);
+    color:#241d2f;
+    border:none;
+    font-family:'Work Sans', sans-serif;
+    font-weight:600;
+    font-size:14px;
+    padding:9px 16px;
+    cursor:pointer;
+  }
+  .agregar button:hover{ background:#f7c968; }
+
+  /* List */
+  .lista-titulo{
+    font-size:13px;
+    color:var(--muted);
+    margin:0 0 4px;
+  }
+  ul.personas{
+    list-style:none;
+    margin:0;
+    padding:0;
+  }
+  ul.personas li{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    padding:13px 2px;
+    border-bottom:1px solid var(--line);
+    gap:12px;
+  }
+  ul.personas li:last-child{ border-bottom:none; }
+  .persona-nombre{
+    font-size:16px;
+  }
+  .persona-nombre.hoy{ color:var(--gold); font-weight:600; }
+  .persona-fecha{
+    color:var(--muted);
+    font-size:13px;
+    white-space:nowrap;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .quitar{
+    background:none;
+    border:none;
+    color:var(--muted);
+    cursor:pointer;
+    font-size:16px;
+    line-height:1;
+    padding:2px 4px;
+  }
+  .quitar:hover{ color:var(--coral); }
+  .vacio{
+    color:var(--muted);
+    font-size:14px;
+    padding:12px 2px;
+  }
+  .contador{
+    color:var(--muted);
+    font-size:12px;
+    margin-top:20px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Cumpleaños</h1>
+  <p class="fecha-hoy" id="fechaHoy"></p>
+
+  <div id="hero"></div>
+
+  <div class="agregar">
+    <p class="agregar-titulo">Añadir persona</p>
+    <div class="agregar-fila">
+      <input type="text" id="nombre" placeholder="Nombre" maxlength="40">
+      <input type="number" id="dia" placeholder="Día" min="1" max="31">
+      <select id="mes">
+        <option value="1">Enero</option>
+        <option value="2">Febrero</option>
+        <option value="3">Marzo</option>
+        <option value="4">Abril</option>
+        <option value="5">Mayo</option>
+        <option value="6">Junio</option>
+        <option value="7">Julio</option>
+        <option value="8">Agosto</option>
+        <option value="9">Septiembre</option>
+        <option value="10">Octubre</option>
+        <option value="11">Noviembre</option>
+        <option value="12">Diciembre</option>
+      </select>
+      <button id="btnAgregar">Añadir</button>
+    </div>
+  </div>
+
+  <p class="lista-titulo">Próximos</p>
+  <ul class="personas" id="lista"></ul>
+  <p class="contador" id="contador"></p>
+</div>
+
+<script>
+const STORAGE_KEY = 'personas';
+let personas = [];
+
+const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+function hoy(){
+  const d = new Date();
+  return { dia: d.getDate(), mes: d.getMonth()+1 };
+}
+
+function diasHastaProximoCumple(dia, mes){
+  const ahora = new Date();
+  const anioActual = ahora.getFullYear();
+  let candidato = new Date(anioActual, mes-1, dia);
+  const hoyMedianoche = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
+  if (candidato < hoyMedianoche) {
+    candidato = new Date(anioActual+1, mes-1, dia);
+  }
+  const msPorDia = 1000*60*60*24;
+  return Math.round((candidato - hoyMedianoche)/msPorDia);
+}
+
+function renderFechaHoy(){
+  const d = new Date();
+  const opciones = { weekday:'long', day:'numeric', month:'long' };
+  document.getElementById('fechaHoy').textContent = d.toLocaleDateString('es-ES', opciones);
+}
+
+function renderHero(){
+  const h = hoy();
+  const cumpleHoy = personas.filter(p => p.dia === h.dia && p.mes === h.mes);
+  const hero = document.getElementById('hero');
+
+  if (cumpleHoy.length > 0){
+    const nombres = cumpleHoy.map(p => p.nombre).join(', ');
+    hero.innerHTML = `
+      <div class="hero hay">
+        <p class="hero-label">Hoy cumple años</p>
+        <p class="hero-nombre ${cumpleHoy.length>1 ? 'varios':''}">${escapeHtml(nombres)}</p>
+        <p class="hero-sub">Buen momento para escribirle.</p>
+      </div>`;
+    return;
+  }
+
+  if (personas.length === 0){
+    hero.innerHTML = `
+      <div class="hero no-hay">
+        <p class="hero-label">Hoy no hay cumpleaños</p>
+        <p class="hero-sub">Añade a alguien abajo para empezar a llevar la cuenta.</p>
+      </div>`;
+    return;
+  }
+
+  let masCercano = null;
+  let minDias = Infinity;
+  personas.forEach(p => {
+    const dias = diasHastaProximoCumple(p.dia, p.mes);
+    if (dias < minDias){ minDias = dias; masCercano = p; }
+  });
+
+  hero.innerHTML = `
+    <div class="hero no-hay">
+      <p class="hero-label">Hoy no hay cumpleaños</p>
+      <p class="hero-sub" style="margin-top:2px;">El siguiente es <strong style="color:var(--paper)">${escapeHtml(masCercano.nombre)}</strong></p>
+      <p class="hero-dias">${minDias === 0 ? 'hoy' : (minDias + (minDias===1 ? ' día' : ' días'))}</p>
+    </div>`;
+}
+
+function renderLista(){
+  const lista = document.getElementById('lista');
+  const h = hoy();
+
+  if (personas.length === 0){
+    lista.innerHTML = '<li class="vacio">Todavía no has añadido a nadie.</li>';
+    document.getElementById('contador').textContent = '';
+    return;
+  }
+
+  const ordenadas = [...personas].sort((a,b) => diasHastaProximoCumple(a.dia,a.mes) - diasHastaProximoCumple(b.dia,b.mes));
+
+  lista.innerHTML = ordenadas.map(p => {
+    const esHoy = p.dia === h.dia && p.mes === h.mes;
+    const dias = diasHastaProximoCumple(p.dia, p.mes);
+    const etiqueta = esHoy ? 'hoy' : (dias + (dias===1 ? ' día' : ' días'));
+    return `<li>
+      <span class="persona-nombre ${esHoy?'hoy':''}">${escapeHtml(p.nombre)}</span>
+      <span class="persona-fecha">${p.dia} de ${MESES[p.mes-1]} · ${etiqueta}
+        <button class="quitar" data-id="${p.id}" title="Quitar" aria-label="Quitar a ${escapeHtml(p.nombre)}">✕</button>
+      </span>
+    </li>`;
+  }).join('');
+
+  document.getElementById('contador').textContent = `${personas.length} de 20 personas`;
+
+  lista.querySelectorAll('.quitar').forEach(btn => {
+    btn.addEventListener('click', () => quitarPersona(btn.dataset.id));
+  });
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function render(){
+  renderFechaHoy();
+  renderHero();
+  renderLista();
+}
+
+async function cargar(){
+  try{
+    const res = await window.storage.get(STORAGE_KEY, false);
+    personas = res && res.value ? JSON.parse(res.value) : [];
+  } catch(e){
+    personas = [];
+  }
+  render();
+}
+
+async function guardar(){
+  try{
+    await window.storage.set(STORAGE_KEY, JSON.stringify(personas), false);
+  } catch(e){
+    console.error('No se pudo guardar', e);
+  }
+}
+
+async function agregarPersona(){
+  const nombreInput = document.getElementById('nombre');
+  const diaInput = document.getElementById('dia');
+  const mesInput = document.getElementById('mes');
+
+  const nombre = nombreInput.value.trim();
+  const dia = parseInt(diaInput.value, 10);
+  const mes = parseInt(mesInput.value, 10);
+
+  if (!nombre || !dia || dia < 1 || dia > 31){
+    return;
+  }
+  if (personas.length >= 20){
+    return;
+  }
+
+  personas.push({ id: Date.now().toString(), nombre, dia, mes });
+  await guardar();
+  render();
+
+  nombreInput.value = '';
+  diaInput.value = '';
+  nombreInput.focus();
+}
+
+async function quitarPersona(id){
+  personas = personas.filter(p => p.id !== id);
+  await guardar();
+  render();
+}
+
+document.getElementById('btnAgregar').addEventListener('click', agregarPersona);
+document.getElementById('nombre').addEventListener('keydown', e => { if(e.key==='Enter') agregarPersona(); });
+document.getElementById('dia').addEventListener('keydown', e => { if(e.key==='Enter') agregarPersona(); });
+
+cargar();
+</script>
+</body>
+</html>
