@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Disponible Hoy</title>
+<style>
+  :root{
+    --bg: #12151c;
+    --surface: #1b2029;
+    --surface-2: #20262f;
+    --line: #2a3040;
+    --text: #f5f6f8;
+    --muted: #8a93a6;
+    --green: #3ecf8e;
+    --green-dim: #2a8f66;
+    --coral: #ff6b5b;
+    --mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+    --sans: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:transparent;color:var(--text);font-family:var(--sans);}
+  #root{
+    max-width:420px;
+    margin:0 auto;
+    min-height:100vh;
+    background:var(--bg);
+    position:relative;
+    padding-bottom:40px;
+  }
+  .receipt{
+    background:var(--surface);
+    margin:16px;
+    border-radius:2px;
+    position:relative;
+    box-shadow:0 20px 40px -20px rgba(0,0,0,0.6);
+  }
+  .receipt::before, .receipt::after{
+    content:"";
+    position:absolute;
+    left:0; right:0;
+    height:10px;
+    background:
+      radial-gradient(circle at 8px 5px, transparent 5px, var(--bg) 5.5px) repeat-x;
+    background-size:16px 10px;
+  }
+  .receipt::before{ top:-9px; }
+  .receipt::after{ bottom:-9px; transform:scaleY(-1); }
+
+  .eyebrow{
+    padding:22px 24px 0 24px;
+    font-family:var(--mono);
+    font-size:13px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--muted);
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+  .eyebrow button{
+    background:none;border:none;color:var(--muted);
+    font-family:var(--mono); font-size:13px; letter-spacing:0.1em;
+    cursor:pointer; text-transform:uppercase; padding:4px;
+  }
+  .eyebrow button:hover{ color:var(--text); }
+
+  .gauge-wrap{
+    display:flex; flex-direction:column; align-items:center;
+    padding:28px 24px 4px 24px;
+  }
+  .gauge-num{
+    font-family:var(--mono);
+    font-weight:700;
+    font-size:56px;
+    line-height:1;
+    letter-spacing:-0.02em;
+  }
+  .gauge-label{
+    font-size:16px;
+    color:var(--muted);
+    margin-top:2px;
+    text-align:center;
+  }
+  .gauge-sub{
+    font-family:var(--mono);
+    font-size:14px;
+    color:var(--muted);
+    margin-top:10px;
+  }
+
+  .dashed{
+    border-top:1.5px dashed var(--line);
+    margin:20px 24px 0 24px;
+  }
+
+  .section-title{
+    padding:18px 24px 8px 24px;
+    font-family:var(--mono);
+    font-size:13px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--muted);
+  }
+
+  .expense-list{ padding:0 24px; }
+  .expense-row{
+    display:flex;
+    align-items:baseline;
+    gap:8px;
+    padding:9px 0;
+    font-size:17px;
+  }
+  .expense-desc{ white-space:nowrap; overflow:hidden; }
+  .expense-leader{
+    flex:1;
+    border-bottom:1px dotted var(--line);
+    height:0;
+    transform:translateY(-4px);
+  }
+  .expense-amt{
+    font-family:var(--mono);
+    white-space:nowrap;
+    color:var(--text);
+  }
+  .expense-amt.ingreso{ color:var(--green); }
+  .expense-del{
+    background:none;border:none;color:var(--muted);
+    font-size:17px; cursor:pointer; padding:0 0 0 6px;
+    line-height:1;
+  }
+  .expense-del:hover{ color:var(--coral); }
+  .empty-line{
+    padding:14px 0;
+    color:var(--muted);
+    font-size:16px;
+    font-style:normal;
+  }
+
+  .type-toggle{
+    display:flex;
+    gap:6px;
+    padding:14px 24px 0 24px;
+  }  .type-btn{
+    flex:1;
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    color:var(--muted);
+    font-family:var(--sans);
+    font-weight:700;
+    font-size:15px;
+    letter-spacing:0.03em;
+    padding:8px;
+    border-radius:6px;
+    cursor:pointer;
+  }
+  .type-btn.active-gasto{
+    background:rgba(255,107,91,0.12);
+    border-color:var(--coral);
+    color:var(--coral);
+  }
+  .type-btn.active-ingreso{
+    background:rgba(62,207,142,0.12);
+    border-color:var(--green);
+    color:var(--green);
+  }
+
+  .chip-row{
+    display:flex;
+    gap:7px;
+    padding:10px 24px 0 24px;
+    overflow-x:auto;
+    -ms-overflow-style:none;
+    scrollbar-width:none;
+    touch-action:pan-x;
+  }
+  .chip-row::-webkit-scrollbar{ display:none; }
+  .chip{
+    flex:0 0 auto;
+    font-family:var(--sans);
+    font-weight:700;
+    font-size:13px;
+    padding:7px 14px;
+    border-radius:999px;
+    cursor:pointer;
+    white-space:nowrap;
+    letter-spacing:0.01em;
+  }
+  .chip-gasto{
+    background:rgba(255,107,91,0.12);
+    border:1.5px solid rgba(255,107,91,0.45);
+    color:var(--coral);
+  }
+  .chip-ingreso{
+    background:rgba(62,207,142,0.12);
+    border:1.5px solid rgba(62,207,142,0.45);
+    color:var(--green);
+  }
+  .chip:active{ transform:scale(0.96); }
+
+  .concept-count{
+    color:var(--muted);
+    font-size:0.85em;
+  }
+  .expense-desc.locked{ color:var(--muted); }
+
+  .pager-label{
+    text-align:center;
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--muted);
+    padding:16px 24px 0 24px;
+  }
+  .pager-viewport{
+    overflow:hidden;
+    touch-action:pan-y;
+  }
+  .pager-track{
+    display:flex;
+    width:400%;
+  }
+  .pager-page{
+    flex:0 0 25%;
+    width:25%;
+    box-sizing:border-box;
+    min-width:0;
+  }
+  .pager-dots{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:8px;
+    padding:14px 0 22px 0;
+  }
+  .pager-dot{
+    width:7px;
+    height:7px;
+    padding:0;
+    border-radius:4px;
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    cursor:pointer;
+  }
+  .pager-dot.active{
+    width:20px;
+    background:var(--green);
+    border-color:var(--green);
+  }
+
+  .concept-edit-btn{
+    background:none;
+    border:none;
+    color:var(--muted);
+    font-size:14px;
+    cursor:pointer;
+    padding:0 0 0 6px;
+    line-height:1;
+  }
+  .concept-edit-btn:hover{ color:var(--green); }
+
+  .add-form{
+    padding:10px 24px 6px 24px;
+    display:flex;
+    gap:8px;
+  }
+  .add-form input{
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    border-radius:6px;
+    color:var(--text);
+    font-family:var(--sans);
+    font-size:17px;
+    padding:10px 12px;
+    outline:none;
+  }
+  .add-form input:focus{ border-color:var(--green-dim); }
+  .add-form input.amt{ width:92px; font-family:var(--mono); }
+  .add-form input.desc{ flex:1; min-width:0; }
+  .add-btn{
+    width:100%;
+    margin:10px 24px 20px 24px;
+    width:calc(100% - 48px);
+    background:var(--green);
+    color:#0b1410;
+    border:none;
+    border-radius:6px;
+    padding:11px;
+    font-family:var(--sans);
+    font-weight:700;
+    font-size:16px;
+    cursor:pointer;
+    letter-spacing:0.01em;
+  }
+  .add-btn:active{ transform:translateY(1px); }
+  .add-btn:disabled{ background:var(--surface-2); color:var(--muted); cursor:default; }
+
+  .month-strip{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:16px 24px 22px 24px;
+    font-family:var(--mono);
+    font-size:14px;
+    color:var(--muted);
+  }
+  .month-strip .val{ color:var(--text); }
+  .bar-track{
+    height:4px;
+    background:var(--surface-2);
+    border-radius:2px;
+    margin:0 24px 4px 24px;
+    overflow:hidden;
+  }
+  .bar-fill{
+    height:100%;
+    background:var(--green);
+    transition:width 0.3s ease;
+  }
+
+  .modal-overlay{
+    position:fixed; inset:0;
+    background:rgba(0,0,0,0.55);
+    display:flex; align-items:center; justify-content:center;
+    z-index:10;
+    padding:20px;
+  }
+  .modal{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:22px;
+    width:100%;
+    max-width:340px;
+  }
+  .modal h3{
+    margin:0 0 14px 0;
+    font-size:17px;
+    font-family:var(--sans);
+    font-weight:700;
+  }
+  .modal label{
+    display:block;
+    font-size:13px;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    margin:12px 0 6px 0;
+  }
+  .modal input{
+    width:100%;
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    border-radius:6px;
+    color:var(--text);
+    font-family:var(--mono);
+    font-size:17px;
+    padding:10px 12px;
+    outline:none;
+  }
+  .modal-actions{
+    display:flex; gap:10px; margin-top:18px;
+  }
+  .modal-actions button{
+    flex:1;
+    padding:10px;
+    border-radius:6px;
+    border:none;
+    font-family:var(--sans);
+    font-weight:700;
+    font-size:15px;
+    cursor:pointer;
+  }
+  .btn-cancel{ background:var(--surface-2); color:var(--muted); }
+  .btn-save{ background:var(--green); color:#0b1410; }
+
+  .history-list{ padding:0 24px; }
+  .history-row{
+    display:flex;
+    align-items:baseline;
+    gap:8px;
+    padding:9px 0;
+    font-size:17px;
+  }
+  .history-month{ white-space:nowrap; text-transform:capitalize; color:var(--muted); }
+  .history-leader{
+    flex:1;
+    border-bottom:1px dotted var(--line);
+    height:0;
+    transform:translateY(-4px);
+  }
+  .history-amt{
+    font-family:var(--mono);
+    white-space:nowrap;
+    font-weight:700;
+  }
+  .history-amt.pos{ color:var(--green); }
+  .history-amt.neg{ color:var(--coral); }
+
+  .history-year-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    padding-top:14px;
+    margin-top:4px;
+    border-top:1px solid var(--line);
+    font-family:var(--mono);
+    font-size:14px;
+    font-weight:700;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    color:var(--text);
+  }
+  .history-year:first-child .history-year-header{ border-top:none; padding-top:0; margin-top:0; }
+
+  .loading{
+    padding:60px 24px;
+    text-align:center;
+    color:var(--muted);
+    font-family:var(--mono);
+    font-size:14px;
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+const NS = 'controldiario:';
+
+const storage = {
+  async get(key){
+    const raw = localStorage.getItem(NS + key);
+    if(raw === null) return null;
+    return { key, value: raw };
+  },
+  async set(key, value){
+    localStorage.setItem(NS + key, value);
+    return { key, value };
+  },
+  async delete(key){
+    localStorage.removeItem(NS + key);
+    return { key, deleted: true };
+  },
+  async list(prefix){
+    prefix = prefix || '';
+    const keys = [];
+    for(let i = 0; i < localStorage.length; i++){
+      const k = localStorage.key(i);
+      if(k && k.startsWith(NS + prefix)){
+        keys.push(k.slice(NS.length));
+      }
+    }
+    return { keys };
+  }
+};
+
+const STORAGE_KEY = 'presupuesto-config';
+const EXPENSES_PREFIX = 'gasto:';
+const INCOME_PREFIX = 'ingreso:';
+const HISTORY_PREFIX = 'historial:';
+const GOAL_KEY = 'meta-ahorro';
+const ACHIEVEMENTS_PREFIX = 'logro:';
+const MILESTONES = [50, 100, 250, 500, 1000, 2500, 5000, 10000];
+
+let state = {
+  loaded: false,
+  budget: null, // { monthlyAmount, currency }
+  movements: [], // { id, type: 'gasto'|'ingreso', amount, desc, dateISO, createdAt }
+  history: [], // { month: 'YYYY-MM', budget, spent, income, resultado }
+  goal: null, // { targetAmount, targetDate: 'YYYY-MM-DD'|null, createdAt }
+  achievements: [], // { amount, unlockedDate }
+  showSetup: false,
+  setupForced: false,
+  formType: 'gasto',
+  formAmount: '',
+  formDesc: '',
+  setupAmount: '',
+  currentPage: 0,
+  editConcept: null, // { type, desc }
+  editConceptValue: '',
+  showGoalSetup: false,
+  goalAmountInput: '',
+  goalDateInput: ''
+};
+
+function fmtMoney(n){
+  const sign = n < 0 ? '-' : '';
+  return sign + '€' + Math.abs(n).toFixed(2).replace('.', ',');
+}
+
+function toISODate(d){
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+
+function todayISO(){
+  return toISODate(new Date());
+}
+
+function daysInMonth(d){
+  return new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
+}
+
+function computeDaily(){
+  const now = new Date();
+  const dim = daysInMonth(now);
+  const dayOfMonth = now.getDate();
+  const daysRemaining = dim - dayOfMonth + 1; // incluye hoy
+
+  const monthKey = toISODate(now).slice(0,7); // YYYY-MM (hora local)
+  const monthMovements = state.movements.filter(e => e.dateISO.startsWith(monthKey));
+  const spentMonth = monthMovements.filter(e => e.type === 'gasto').reduce((s,e) => s + e.amount, 0);
+  const incomeMonth = monthMovements.filter(e => e.type === 'ingreso').reduce((s,e) => s + e.amount, 0);
+
+  const todayKey = todayISO();
+  const todayMovements = state.movements.filter(e => e.dateISO === todayKey)
+    .sort((a,b) => b.createdAt - a.createdAt);
+  const spentToday = todayMovements.filter(e => e.type === 'gasto').reduce((s,e) => s + e.amount, 0);
+
+  const budget = state.budget ? state.budget.monthlyAmount : 0;
+  // Cada día se "libera" una cuota fija (presupuesto / días del mes).
+  // Lo no gastado se acumula íntegro al saldo, no se reparte entre los días restantes.
+  const allowancePerDay = dim > 0 ? budget / dim : 0;
+  const accrued = allowancePerDay * dayOfMonth; // cuota ya liberada hasta hoy (incluido hoy)
+  const availableToday = accrued + incomeMonth - spentMonth; // saldo acumulado real a día de hoy
+
+  return {
+    dim, dayOfMonth, daysRemaining, spentMonth, incomeMonth, budget,
+    availablePerDay: allowancePerDay, availableToday, todayMovements, spentToday
+  };
+}
+
+async function loadData(){
+  try{
+    const cfg = await storage.get(STORAGE_KEY, false);
+    state.budget = cfg ? JSON.parse(cfg.value) : null;
+  }catch(e){ state.budget = null; }
+
+  const items = [];
+  for(const prefix of [EXPENSES_PREFIX, INCOME_PREFIX]){
+    try{
+      const list = await storage.list(prefix, false);
+      const keys = (list && list.keys) ? list.keys : [];
+      for(const k of keys){
+        try{
+          const r = await storage.get(k, false);
+          if(r) items.push(JSON.parse(r.value));
+        }catch(e){}
+      }
+    }catch(e){}
+  }
+  state.movements = items;
+
+  try{
+    const list = await storage.list(HISTORY_PREFIX, false);
+    const keys = (list && list.keys) ? list.keys : [];
+    const hist = [];
+    for(const k of keys){
+      try{
+        const r = await storage.get(k, false);
+        if(r) hist.push(JSON.parse(r.value));
+      }catch(e){}
+    }
+    state.history = hist;
+  }catch(e){ state.history = []; }
+
+  try{
+    const g = await storage.get(GOAL_KEY, false);
+    state.goal = g ? JSON.parse(g.value) : null;
+  }catch(e){ state.goal = null; }
+
+  try{
+    const list = await storage.list(ACHIEVEMENTS_PREFIX, false);
+    const keys = (list && list.keys) ? list.keys : [];
+    const ach = [];
+    for(const k of keys){
+      try{
+        const r = await storage.get(k, false);
+        if(r) ach.push(JSON.parse(r.value));
+      }catch(e){}
+    }
+    state.achievements = ach;
+  }catch(e){ state.achievements = []; }
+
+  await archivePreviousMonthIfNeeded();
+
+  const currentMonthKey = toISODate(new Date()).slice(0,7);
+  const needsMonthSetup = !state.budget || state.budget.monthKey !== currentMonthKey;
+
+  state.loaded = true;
+  if(needsMonthSetup){
+    state.showSetup = true;
+    state.setupForced = true;
+    state.setupAmount = state.budget ? String(state.budget.monthlyAmount) : '';
+  }
+  render();
+}
+
+async function archivePreviousMonthIfNeeded(){
+  if(!state.budget) return; // nada que archivar sin presupuesto configurado
+
+  const now = new Date();
+  const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const prevMonthKey = toISODate(prevDate).slice(0,7); // YYYY-MM (hora local)
+
+  const alreadyArchived = state.history.some(h => h.month === prevMonthKey);
+  if(alreadyArchived) return;
+
+  const prevMovements = state.movements.filter(e => e.dateISO.startsWith(prevMonthKey));
+  const hadActivity = prevMovements.length > 0;
+  if(!hadActivity) return; // no hubo nada ese mes, no archivamos una fila vacía
+
+  const spent = prevMovements.filter(e => e.type === 'gasto').reduce((s,e) => s + e.amount, 0);
+  const income = prevMovements.filter(e => e.type === 'ingreso').reduce((s,e) => s + e.amount, 0);
+  const budget = state.budget.monthlyAmount;
+  const resultado = budget + income - spent;
+
+  const entry = { month: prevMonthKey, budget, spent, income, resultado };
+  try{
+    await storage.set(HISTORY_PREFIX + prevMonthKey, JSON.stringify(entry), false);
+    state.history.push(entry);
+  }catch(e){ console.error('Error archivando el mes anterior', e); }
+}
+
+async function saveBudget(amount){
+  const cfg = { monthlyAmount: amount, currency: 'EUR', monthKey: toISODate(new Date()).slice(0,7) };
+  try{
+    await storage.set(STORAGE_KEY, JSON.stringify(cfg), false);
+    state.budget = cfg;
+  }catch(e){ console.error('Error guardando presupuesto', e); }
+}
+
+async function addMovement(type, amount, desc){
+  const id = 'm' + Date.now() + Math.random().toString(36).slice(2,7);
+  const defaultDesc = type === 'ingreso' ? 'Ingreso' : 'Gasto';
+  const item = { id, type, amount, desc: desc || defaultDesc, dateISO: todayISO(), createdAt: Date.now() };
+  const prefix = type === 'ingreso' ? INCOME_PREFIX : EXPENSES_PREFIX;
+  try{
+    await storage.set(prefix + id, JSON.stringify(item), false);
+    state.movements.push(item);
+  }catch(e){ console.error('Error guardando movimiento', e); }
+}
+
+async function deleteMovement(id, type){
+  const prefix = type === 'ingreso' ? INCOME_PREFIX : EXPENSES_PREFIX;
+  try{
+    await storage.delete(prefix + id, false);
+    state.movements = state.movements.filter(e => e.id !== id);
+    render();
+  }catch(e){ console.error('Error borrando movimiento', e); }
+}
+
+// Corrige el nombre de un concepto en TODOS los movimientos de ese tipo que lo tengan
+// (no solo los de hoy), para que erratas como "cimida" se fundan con "comida".
+async function renameConcept(type, oldDesc, newDesc){
+  const oldKey = oldDesc.trim().toLowerCase();
+  const trimmedNew = newDesc.trim();
+  if(!trimmedNew) return;
+  const prefix = type === 'ingreso' ? INCOME_PREFIX : EXPENSES_PREFIX;
+  const affected = state.movements.filter(e => e.type === type && e.desc.trim().toLowerCase() === oldKey);
+  for(const mv of affected){
+    mv.desc = trimmedNew;
+    try{
+      await storage.set(prefix + mv.id, JSON.stringify(mv), false);
+    }catch(e){ console.error('Error renombrando concepto', e); }
+  }
+}
+
+// "Hucha" acumulada a lo largo del tiempo: lo ya archivado de meses anteriores
+// más lo que llevas acumulado (o en negativo) este mes.
+function computeLifetimeSavings(calc){
+  const historyTotal = state.history.reduce((s,h) => s + h.resultado, 0);
+  return historyTotal + calc.availableToday;
+}
+
+// Desbloquea (y guarda) los hitos nuevos que la hucha acumulada alcance.
+// Una vez conseguido, un hito se queda conseguido para siempre.
+function checkAndUnlockMilestones(lifetimeSavings){
+  const unlocked = new Set(state.achievements.map(a => a.amount));
+  MILESTONES.forEach(amount => {
+    if(!unlocked.has(amount) && lifetimeSavings >= amount){
+      const entry = { amount, unlockedDate: todayISO() };
+      state.achievements.push(entry);
+      storage.set(ACHIEVEMENTS_PREFIX + amount, JSON.stringify(entry), false)
+        .catch(e => console.error('Error guardando el hito', e));
+    }
+  });
+}
+
+async function saveGoal(amount, dateISO){
+  const cfg = {
+    targetAmount: amount,
+    targetDate: dateISO || null,
+    createdAt: state.goal ? state.goal.createdAt : Date.now()
+  };
+  try{
+    await storage.set(GOAL_KEY, JSON.stringify(cfg), false);
+    state.goal = cfg;
+  }catch(e){ console.error('Error guardando la meta', e); }
+}
+
+function openGoalModal(){
+  state.showGoalSetup = true;
+  state.goalAmountInput = state.goal ? String(state.goal.targetAmount) : '';
+  state.goalDateInput = state.goal && state.goal.targetDate ? state.goal.targetDate : '';
+  render();
+}
+
+function daysUntil(dateISO){
+  const [y,m,d] = dateISO.split('-').map(Number);
+  const target = new Date(y, m-1, d);
+  const now = new Date();
+  const nowMid = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((target - nowMid) / 86400000);
+}
+
+function formatShortDate(dateISO){
+  const [y,m,d] = dateISO.split('-').map(Number);
+  const dt = new Date(y, m-1, d);
+  return dt.toLocaleDateString('es-ES', { day:'numeric', month:'short' });
+}
+
+function el(tag, attrs, ...children){
+  const e = document.createElement(tag);
+  if(attrs) for(const k in attrs){
+    if(k === 'class') e.className = attrs[k];
+    else if(k.startsWith('on')) e.addEventListener(k.slice(2).toLowerCase(), attrs[k]);
+    else e.setAttribute(k, attrs[k]);
+  }
+  children.flat().forEach(c => {
+    if(c === null || c === undefined) return;
+    if(typeof c === 'string') e.appendChild(document.createTextNode(c));
+    else e.appendChild(c);
+  });
+  return e;
+}
+
+function dateLabelEs(){
+  const opts = { weekday: 'long', day: 'numeric', month: 'long' };
+  const s = new Date().toLocaleDateString('es-ES', opts);
+  return s;
+}
+
+function monthLabelEs(monthKey){
+  const [y, m] = monthKey.split('-').map(Number);
+  const d = new Date(y, m - 1, 1);
+  return d.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+}
+
+// Agrupa por concepto ignorando mayúsculas/espacios, para no separar "Café" de "café ".
+function groupByConcept(movements){
+  const map = new Map();
+  movements.forEach(e => {
+    const key = e.desc.trim().toLowerCase();
+    if(!map.has(key)){
+      map.set(key, { desc: e.desc.trim(), total: 0, count: 0, lastUsed: 0 });
+    }
+    const entry = map.get(key);
+    entry.total += e.amount;
+    entry.count += 1;
+    entry.lastUsed = Math.max(entry.lastUsed, e.createdAt);
+  });
+  return Array.from(map.values());
+}
+
+function computeByConceptThisMonth(){
+  const monthKey = toISODate(new Date()).slice(0,7);
+  const monthMovements = state.movements.filter(e => e.dateISO.startsWith(monthKey));
+  const gastos = groupByConcept(monthMovements.filter(e => e.type === 'gasto'))
+    .sort((a,b) => b.total - a.total);
+  const ingresos = groupByConcept(monthMovements.filter(e => e.type === 'ingreso'))
+    .sort((a,b) => b.total - a.total);
+  return { gastos, ingresos };
+}
+
+// Conceptos más usados de un tipo, para sugerirlos como chips y evitar erratas.
+function conceptSuggestions(type){
+  const grouped = groupByConcept(state.movements.filter(e => e.type === type));
+  return grouped
+    .sort((a,b) => b.count - a.count || b.lastUsed - a.lastUsed)
+    .slice(0, 6)
+    .map(e => e.desc);
+}
+
+const PAGE_NAMES = ['Hoy', 'Conceptos', 'Historial', 'Logros'];
+const PAGE_COUNT = PAGE_NAMES.length;
+let dragState = { active: false, startX: 0, baseOffset: 0 };
+
+function buildPageHoy(calc){
+  const page = el('div', {class:'pager-page'});
+
+  const isOver = calc.availableToday < 0;
+  const color = isOver ? 'var(--coral)' : 'var(--green)';
+
+  const gaugeWrap = el('div', {class:'gauge-wrap'});
+  gaugeWrap.appendChild(el('div', {class:'gauge-num', style:`color:${color}`}, fmtMoney(calc.availableToday)));
+  gaugeWrap.appendChild(el('div', {class:'gauge-label'}, isOver ? 'te has pasado del disponible de hoy' : 'disponible para gastar hoy'));
+  const subParts = [`${fmtMoney(calc.availablePerDay)}/día · quedan ${calc.daysRemaining} días`];
+  if(calc.incomeMonth > 0) subParts.push(`incluye +${fmtMoney(calc.incomeMonth)} de ingresos este mes`);
+  gaugeWrap.appendChild(el('div', {class:'gauge-sub'}, subParts.join(' · ')));
+  page.appendChild(gaugeWrap);
+
+  page.appendChild(el('div', {class:'dashed'}));
+
+  page.appendChild(el('div', {class:'section-title'}, 'Movimientos de hoy'));
+  const list = el('div', {class:'expense-list'});
+  if(calc.todayMovements.length === 0){
+    list.appendChild(el('div', {class:'empty-line'}, 'Aún no has registrado ningún movimiento hoy.'));
+  } else {
+    calc.todayMovements.forEach(ex => {
+      const isIncome = ex.type === 'ingreso';
+      const amtText = (isIncome ? '+' : '') + fmtMoney(ex.amount);
+      list.appendChild(el('div', {class:'expense-row'},
+        el('span', {class:'expense-desc'}, ex.desc),
+        el('span', {class:'expense-leader'}),
+        el('span', {class:'expense-amt' + (isIncome ? ' ingreso' : '')}, amtText),
+        el('button', {class:'expense-del', onClick: () => deleteMovement(ex.id, ex.type)}, '×')
+      ));
+    });
+  }
+  page.appendChild(list);
+
+  const toggle = el('div', {class:'type-toggle'},
+    el('button', {
+      class: 'type-btn' + (state.formType === 'gasto' ? ' active-gasto' : ''),
+      onClick: () => { state.formType = 'gasto'; render(); }
+    }, 'Gasto'),
+    el('button', {
+      class: 'type-btn' + (state.formType === 'ingreso' ? ' active-ingreso' : ''),
+      onClick: () => { state.formType = 'ingreso'; render(); }
+    }, 'Ingreso')
+  );
+  page.appendChild(toggle);
+
+  const suggestions = conceptSuggestions(state.formType);
+  if(suggestions.length > 0){
+    const chipTypeClass = state.formType === 'ingreso' ? 'chip-ingreso' : 'chip-gasto';
+    const chipRow = el('div', {class:'chip-row'});
+    // El deslizamiento horizontal sobre los chips es para desplazarlos a ellos,
+    // no para cambiar de pantalla: cortamos la propagación hacia el pager.
+    ['touchstart','touchmove','touchend','touchcancel'].forEach(evt => {
+      chipRow.addEventListener(evt, e => e.stopPropagation(), {passive:true});
+    });
+    suggestions.forEach(s => {
+      chipRow.appendChild(el('button', {
+        class:'chip ' + chipTypeClass, type:'button',
+        onClick: () => { state.formDesc = s; render(); }
+      }, '#' + s));
+    });
+    page.appendChild(chipRow);
+  }
+
+  const form = el('div', {class:'add-form'});
+  const amtInput = el('input', {class:'amt', type:'number', step:'0.01', min:'0', placeholder:'0,00', inputmode:'decimal'});
+  const descInput = el('input', {class:'desc', type:'text', placeholder: state.formType === 'ingreso' ? '¿De dónde?' : '¿En qué?', maxlength:'40'});
+  amtInput.value = state.formAmount;
+  descInput.value = state.formDesc;
+  amtInput.addEventListener('input', e => { state.formAmount = e.target.value; });
+  descInput.addEventListener('input', e => { state.formDesc = e.target.value; });
+  descInput.addEventListener('keydown', e => { if(e.key === 'Enter') submitMovement(); });
+  form.appendChild(amtInput);
+  form.appendChild(descInput);
+  page.appendChild(form);
+
+  page.appendChild(el('button', {class:'add-btn', onClick: submitMovement}, state.formType === 'ingreso' ? '+ Añadir ingreso' : '+ Añadir gasto'));
+
+  page.appendChild(el('div', {class:'dashed'}));
+
+  const monthPct = calc.budget > 0 ? Math.min(1, calc.spentMonth / calc.budget) : 0;
+  page.appendChild(el('div', {class:'bar-track'}, el('div', {class:'bar-fill', style:`width:${monthPct*100}%`})));
+  page.appendChild(el('div', {class:'month-strip'},
+    el('span', null, 'este mes: ', el('span', {class:'val'}, `${fmtMoney(calc.spentMonth)} / ${fmtMoney(calc.budget)}`)),
+    el('span', null, `día ${calc.dayOfMonth} de ${calc.dim}`)
+  ));
+
+  return page;
+}
+
+function buildConceptRow(g, type){
+  const isIncome = type === 'ingreso';
+  const amtText = (isIncome ? '+' : '') + fmtMoney(g.total);
+  return el('div', {class:'expense-row'},
+    el('span', {class:'expense-desc'}, g.desc, g.count > 1 ? el('span', {class:'concept-count'}, ` ×${g.count}`) : null),
+    el('span', {class:'expense-leader'}),
+    el('span', {class:'expense-amt' + (isIncome ? ' ingreso' : '')}, amtText),
+    el('button', {
+      class:'concept-edit-btn',
+      title:'Renombrar concepto',
+      onClick: () => { state.editConcept = { type, desc: g.desc }; state.editConceptValue = g.desc; render(); }
+    }, '✎')
+  );
+}
+
+function buildPageConceptos(){
+  const page = el('div', {class:'pager-page'});
+  page.appendChild(el('div', {class:'section-title'}, 'Por concepto este mes'));
+
+  const byConcept = computeByConceptThisMonth();
+  const list = el('div', {class:'expense-list'});
+  if(byConcept.gastos.length === 0 && byConcept.ingresos.length === 0){
+    list.appendChild(el('div', {class:'empty-line'}, 'Todavía no hay movimientos este mes.'));
+  } else {
+    byConcept.gastos.forEach(g => list.appendChild(buildConceptRow(g, 'gasto')));
+    byConcept.ingresos.forEach(g => list.appendChild(buildConceptRow(g, 'ingreso')));
+  }
+  page.appendChild(list);
+
+  if(byConcept.gastos.length > 0 || byConcept.ingresos.length > 0){
+    page.appendChild(el('div', {class:'empty-line', style:'padding-top:2px;'}, 'Toca el lápiz para corregir un nombre mal escrito; se fusiona automáticamente con el resto.'));
+  }
+
+  return page;
+}
+
+function buildPageHistorial(){
+  const page = el('div', {class:'pager-page'});
+  page.appendChild(el('div', {class:'section-title'}, 'Evolución mensual'));
+
+  if(state.history.length === 0){
+    const list = el('div', {class:'expense-list'});
+    list.appendChild(el('div', {class:'empty-line'}, 'Aquí verás el resultado de cada mes en cuanto se cierre el primero.'));
+    page.appendChild(list);
+    return page;
+  }
+
+  const histList = el('div', {class:'history-list'});
+  const sorted = [...state.history].sort((a,b) => b.month.localeCompare(a.month));
+  const grouped = {};
+  sorted.forEach(h => {
+    const year = h.month.slice(0,4);
+    if(!grouped[year]) grouped[year] = [];
+    grouped[year].push(h);
+  });
+  const years = Object.keys(grouped).sort((a,b) => b.localeCompare(a));
+
+  years.forEach(year => {
+    const yearTotal = grouped[year].reduce((s,h) => s + h.resultado, 0);
+    const yearPos = yearTotal >= 0;
+    const yearBlock = el('div', {class:'history-year'});
+    yearBlock.appendChild(el('div', {class:'history-year-header'},
+      el('span', null, 'Total ' + year),
+      el('span', {class:'history-amt ' + (yearPos ? 'pos' : 'neg')}, (yearPos ? '+' : '') + fmtMoney(yearTotal))
+    ));
+    grouped[year].forEach(h => {
+      const pos = h.resultado >= 0;
+      yearBlock.appendChild(el('div', {class:'history-row'},
+        el('span', {class:'history-month'}, monthLabelEs(h.month)),
+        el('span', {class:'history-leader'}),
+        el('span', {class:'history-amt ' + (pos ? 'pos' : 'neg')}, (pos ? '+' : '') + fmtMoney(h.resultado))
+      ));
+    });
+    histList.appendChild(yearBlock);
+  });
+  page.appendChild(histList);
+
+  return page;
+}
+
+function buildPageLogros(calc){
+  const page = el('div', {class:'pager-page'});
+  const lifetime = computeLifetimeSavings(calc);
+
+  page.appendChild(el('div', {class:'section-title'}, 'Meta de ahorro'));
+  const goalWrap = el('div', {style:'padding:0 24px;'});
+
+  if(state.goal){
+    const target = state.goal.targetAmount;
+    const pct = target > 0 ? Math.max(0, Math.min(1, lifetime / target)) : 0;
+    goalWrap.appendChild(el('div', {class:'gauge-sub', style:'margin-bottom:10px;'},
+      `${fmtMoney(lifetime)} de ${fmtMoney(target)} ahorrados · ${Math.round(pct*100)}%`));
+    goalWrap.appendChild(el('div', {class:'bar-track'}, el('div', {class:'bar-fill', style:`width:${pct*100}%`})));
+    if(state.goal.targetDate){
+      const days = daysUntil(state.goal.targetDate);
+      goalWrap.appendChild(el('div', {class:'gauge-sub', style:'margin-top:10px;'},
+        days >= 0 ? `Quedan ${days} días para tu fecha objetivo` : 'La fecha objetivo ya ha pasado'));
+    }
+    goalWrap.appendChild(el('button', {class:'chip chip-ingreso', style:'margin-top:16px;', onClick: openGoalModal}, 'Editar meta'));
+  } else {
+    goalWrap.appendChild(el('div', {class:'empty-line'}, `Ahora mismo llevas ${fmtMoney(lifetime)} acumulados. Define una meta para ver tu progreso.`));
+    goalWrap.appendChild(el('button', {class:'add-btn', style:'margin-top:8px;', onClick: openGoalModal}, '+ Definir meta de ahorro'));
+  }
+  page.appendChild(goalWrap);
+
+  page.appendChild(el('div', {class:'dashed'}));
+  page.appendChild(el('div', {class:'section-title'}, 'Hitos de tu hucha'));
+  const list = el('div', {class:'expense-list'});
+  MILESTONES.forEach(amount => {
+    const unlocked = state.achievements.find(a => a.amount === amount);
+    list.appendChild(el('div', {class:'expense-row'},
+      el('span', {class:'expense-desc' + (unlocked ? '' : ' locked')}, (unlocked ? '✓ ' : '○ ') + fmtMoney(amount)),
+      el('span', {class:'expense-leader'}),
+      el('span', {class:'expense-amt' + (unlocked ? ' ingreso' : '')}, unlocked ? formatShortDate(unlocked.unlockedDate) : '—')
+    ));
+  });
+  page.appendChild(list);
+
+  return page;
+}
+
+function goToPage(index){
+  state.currentPage = Math.max(0, Math.min(PAGE_COUNT - 1, index));
+  render();
+}
+
+function buildPager(calc){
+  const viewport = el('div', {class:'pager-viewport'});
+  const track = el('div', {class:'pager-track'});
+
+  track.appendChild(buildPageHoy(calc));
+  track.appendChild(buildPageConceptos());
+  track.appendChild(buildPageHistorial());
+  track.appendChild(buildPageLogros(calc));
+
+  const baseOffsetPercent = -(state.currentPage * (100 / PAGE_COUNT));
+  track.style.transform = `translateX(${baseOffsetPercent}%)`;
+  track.style.transition = 'transform 0.28s ease';
+
+  track.addEventListener('touchstart', e => {
+    dragState.active = true;
+    dragState.startX = e.touches[0].clientX;
+    dragState.baseOffset = baseOffsetPercent;
+    track.style.transition = 'none';
+  }, {passive:true});
+
+  track.addEventListener('touchmove', e => {
+    if(!dragState.active) return;
+    const dx = e.touches[0].clientX - dragState.startX;
+    const viewportWidth = viewport.getBoundingClientRect().width || 1;
+    const dxPercentOfTrack = (dx / viewportWidth) * (100 / PAGE_COUNT);
+    track.style.transform = `translateX(${dragState.baseOffset + dxPercentOfTrack}%)`;
+  }, {passive:true});
+
+  const endDrag = e => {
+    if(!dragState.active) return;
+    dragState.active = false;
+    const touch = e.changedTouches[0];
+    const dx = touch.clientX - dragState.startX;
+    const viewportWidth = viewport.getBoundingClientRect().width || 1;
+    const threshold = viewportWidth * 0.18;
+    if(dx < -threshold && state.currentPage < PAGE_COUNT - 1) state.currentPage += 1;
+    else if(dx > threshold && state.currentPage > 0) state.currentPage -= 1;
+    track.style.transition = 'transform 0.28s ease';
+    render();
+  };
+  track.addEventListener('touchend', endDrag);
+  track.addEventListener('touchcancel', endDrag);
+
+  viewport.appendChild(track);
+  return viewport;
+}
+
+function render(){
+  const root = document.getElementById('root');
+  root.innerHTML = '';
+
+  if(!state.loaded){
+    root.appendChild(el('div', {class:'loading'}, 'CARGANDO TU LIBRETA…'));
+    return;
+  }
+
+  const receipt = el('div', {class:'receipt'});
+
+  receipt.appendChild(el('div', {class:'eyebrow'},
+    el('span', null, dateLabelEs()),
+    el('button', {onClick: () => { state.showSetup = true; state.setupForced = false; state.setupAmount = state.budget ? String(state.budget.monthlyAmount) : ''; render(); }}, 'presupuesto')
+  ));
+
+  receipt.appendChild(el('div', {class:'pager-label'}, PAGE_NAMES[state.currentPage]));
+
+  const calc = computeDaily();
+  checkAndUnlockMilestones(computeLifetimeSavings(calc));
+  receipt.appendChild(buildPager(calc));
+
+  const dots = el('div', {class:'pager-dots'});
+  PAGE_NAMES.forEach((name, i) => {
+    dots.appendChild(el('button', {
+      class: 'pager-dot' + (state.currentPage === i ? ' active' : ''),
+      title: name,
+      onClick: () => goToPage(i)
+    }));
+  });
+  receipt.appendChild(dots);
+
+  root.appendChild(receipt);
+
+  if(state.showSetup){
+    root.appendChild(renderSetupModal());
+  }
+  if(state.editConcept){
+    root.appendChild(renderConceptEditModal());
+  }
+  if(state.showGoalSetup){
+    root.appendChild(renderGoalModal());
+  }
+}
+
+async function submitMovement(){
+  const amount = parseFloat((state.formAmount || '').replace(',', '.'));
+  if(!amount || amount <= 0) return;
+  await addMovement(state.formType, amount, state.formDesc.trim());
+  state.formAmount = '';
+  state.formDesc = '';
+  render();
+}
+
+function renderSetupModal(){
+  const forced = state.setupForced;
+  const overlay = el('div', {class:'modal-overlay', onClick: (e) => { if(e.target === overlay && state.budget && !forced){ state.showSetup = false; render(); } }});
+  const modal = el('div', {class:'modal'});
+
+  let title = 'Configura tu presupuesto';
+  if(forced) title = 'Nuevo mes: define tu presupuesto';
+  else if(state.budget) title = 'Editar presupuesto mensual';
+  modal.appendChild(el('h3', null, title));
+
+  if(forced){
+    modal.appendChild(el('p', {style:'margin:0 0 4px 0; font-size:13px; color:var(--muted); line-height:1.4;'},
+      'Ha empezado un mes nuevo. Confirma cuánto quieres presupuestar para poder calcular tu disponible diario.'));
+  }
+
+  modal.appendChild(el('label', null, 'Presupuesto del mes (€)'));
+  const input = el('input', {type:'number', step:'0.01', min:'0', placeholder:'600'});
+  input.value = state.setupAmount;
+  input.addEventListener('input', e => { state.setupAmount = e.target.value; });
+  modal.appendChild(input);
+
+  const actions = el('div', {class:'modal-actions'});
+  if(state.budget && !forced){
+    actions.appendChild(el('button', {class:'btn-cancel', onClick: () => { state.showSetup = false; render(); }}, 'Cancelar'));
+  }
+  actions.appendChild(el('button', {class:'btn-save', onClick: async () => {
+    const amount = parseFloat((state.setupAmount || '').replace(',', '.'));
+    if(!amount || amount <= 0) return;
+    await saveBudget(amount);
+    state.showSetup = false;
+    state.setupForced = false;
+    render();
+  }}, 'Guardar'));
+  modal.appendChild(actions);
+
+  overlay.appendChild(modal);
+  return overlay;
+}
+
+function renderConceptEditModal(){
+  const { type, desc } = state.editConcept;
+  const overlay = el('div', {class:'modal-overlay', onClick: (e) => { if(e.target === overlay){ state.editConcept = null; render(); } }});
+  const modal = el('div', {class:'modal'});
+
+  modal.appendChild(el('h3', null, 'Renombrar concepto'));
+  modal.appendChild(el('label', null, 'Se corregirá en todos los movimientos de "' + desc + '"'));
+  const input = el('input', {type:'text', maxlength:'40'});
+  input.value = state.editConceptValue;
+  input.addEventListener('input', e => { state.editConceptValue = e.target.value; });
+  modal.appendChild(input);
+
+  const actions = el('div', {class:'modal-actions'});
+  actions.appendChild(el('button', {class:'btn-cancel', onClick: () => { state.editConcept = null; render(); }}, 'Cancelar'));
+  actions.appendChild(el('button', {class:'btn-save', onClick: async () => {
+    const newVal = state.editConceptValue.trim();
+    if(!newVal) return;
+    await renameConcept(type, desc, newVal);
+    state.editConcept = null;
+    render();
+  }}, 'Guardar'));
+  modal.appendChild(actions);
+
+  overlay.appendChild(modal);
+  return overlay;
+}
+
+function renderGoalModal(){
+  const overlay = el('div', {class:'modal-overlay', onClick: (e) => { if(e.target === overlay){ state.showGoalSetup = false; render(); } }});
+  const modal = el('div', {class:'modal'});
+
+  modal.appendChild(el('h3', null, state.goal ? 'Editar meta de ahorro' : 'Define tu meta de ahorro'));
+
+  modal.appendChild(el('label', null, 'Importe objetivo (€)'));
+  const amtInput = el('input', {type:'number', step:'0.01', min:'0', placeholder:'1000'});
+  amtInput.value = state.goalAmountInput;
+  amtInput.addEventListener('input', e => { state.goalAmountInput = e.target.value; });
+  modal.appendChild(amtInput);
+
+  modal.appendChild(el('label', null, 'Fecha objetivo (opcional)'));
+  const dateInput = el('input', {type:'date'});
+  dateInput.value = state.goalDateInput;
+  dateInput.addEventListener('input', e => { state.goalDateInput = e.target.value; });
+  modal.appendChild(dateInput);
+
+  const actions = el('div', {class:'modal-actions'});
+  actions.appendChild(el('button', {class:'btn-cancel', onClick: () => { state.showGoalSetup = false; render(); }}, 'Cancelar'));
+  actions.appendChild(el('button', {class:'btn-save', onClick: async () => {
+    const amount = parseFloat((state.goalAmountInput || '').replace(',', '.'));
+    if(!amount || amount <= 0) return;
+    await saveGoal(amount, state.goalDateInput || null);
+    state.showGoalSetup = false;
+    render();
+  }}, 'Guardar'));
+  modal.appendChild(actions);
+
+  overlay.appendChild(modal);
+  return overlay;
+}
+
+loadData();
+</script>
+</body>
+</html>
